@@ -1,0 +1,5 @@
+{
+  "name": "politech-claude-proxy",
+  "compatibility_date": "2026-07-04",
+  "main": "workers/claude-proxy.js"
+}
