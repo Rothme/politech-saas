@@ -9,6 +9,7 @@
   font-family: var(--pt-font-body, 'DM Sans', sans-serif);
   background: var(--pt-light, #f3f6f0);
   color: var(--pt-text, #1a2e1a);
+  text-align: left;
 }
 
 /* ---------- Explore hero ---------- */
