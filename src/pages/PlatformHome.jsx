@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
+import { motion, useInView, useReducedMotion, animate } from 'framer-motion';
+import { QrCode, Smartphone, MessageCircle, Award, Phone, ShieldCheck, MapPin, Map } from 'lucide-react';
 import './PlatformHome.css';
 import logo from '../assets/brand/politech-logo.png';
+
+const NAV_LINKS = [
+  { href: '#how', label: 'How it works' },
+  { href: '#reach', label: 'Reach' },
+  { href: '#trust', label: 'Live now' },
+];
 
 const OFFICES_GEO = ['President', 'Governor', 'Senator', 'House of Reps', 'State Assembly', 'LG Chairman', 'Councilor'];
 const OFFICES_ORG = ['Student Union President', 'Faculty Officer', 'Association Officer', 'Club Chairman'];
@@ -8,33 +16,33 @@ const OFFICES_ORG = ['Student Union President', 'Faculty Officer', 'Association 
 const STEPS = [
   { n: '1', title: 'Sticker deployed', body: 'A field agent receives a batch of identical stickers, each with one QR code and blank space for a location code.' },
   { n: '2', title: 'Location registered', body: 'At deployment, the agent writes a unique code on the sticker and logs its ward and address in the field portal.' },
-  { n: '3', title: 'Citizen scans', body: 'Anyone can scan the code to see achievements or a manifesto for their sector, ward, or LGA — no app required.' },
+  { n: '3', title: 'Citizen scans', body: 'Anyone can scan the code to see achievements or a manifesto for their sector, ward, or LGA. No app required.' },
   { n: '4', title: 'Record verified', body: 'Every claim shown has passed through Capitaro or campaign-team approval before it goes live.' },
-  { n: '5', title: 'Presence proven', body: 'The admin dashboard shows exactly where the campaign has reached — and where it hasn\u2019t.' },
+  { n: '5', title: 'Presence proven', body: 'The admin dashboard shows exactly where the campaign has reached, and where it has not.' },
 ];
 
-const CHANNELS = [
-  { icon: 'qr', title: 'QR codes', body: 'Stickers, posters, and merchandise link straight to a verified record — no typing a URL.' },
-  { icon: 'ussd', title: 'USSD', body: 'Reaches any phone, no internet required \u2014 built for wards where data is scarce.' },
-  { icon: 'chat', title: 'WhatsApp', body: 'Answers plain-language questions about a candidate\u2019s record, sourced from the same verified data.' },
-  { icon: 'badge', title: 'Physical merch', body: 'Badges, keychains, and fridge magnets carry a trackable code \u2014 so a giveaway becomes measurable.' },
+const FEATURES = [
+  { Icon: QrCode, title: 'QR Access', body: 'Scan a code on a sticker, poster, or merch item straight to a verified record. No typing a URL.' },
+  { Icon: Smartphone, title: 'USSD Reach', body: 'Works on any phone, no internet required, built for wards where data is scarce.' },
+  { Icon: MessageCircle, title: 'WhatsApp Verify', body: "Plain-language Q&A about a candidate's record, sourced from the same verified data." },
+  { Icon: Map, title: 'Ward Mapping', body: 'Coverage is tracked down to the ward level, not just the state or LGA.' },
+  { Icon: ShieldCheck, title: 'Neutral Approval', body: 'Every claim is reviewed by Capitaro or the campaign team before it goes live.' },
+  { Icon: Award, title: 'Trackable Merch', body: 'Badges, keychains, and fridge magnets carry a code, so a giveaway becomes measurable.' },
 ];
 
-function Icon({ name }) {
-  const common = { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round' };
-  if (name === 'qr') return (
-    <svg {...common}><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z" /></svg>
-  );
-  if (name === 'ussd') return (
-    <svg {...common}><rect x="6" y="2" width="12" height="20" rx="2" /><path d="M9 18h6" /><circle cx="9" cy="7" r=".6" fill="currentColor" /><circle cx="12" cy="7" r=".6" fill="currentColor" /><circle cx="15" cy="7" r=".6" fill="currentColor" /></svg>
-  );
-  if (name === 'chat') return (
-    <svg {...common}><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" /></svg>
-  );
-  return (
-    <svg {...common}><circle cx="12" cy="8" r="5" /><path d="M9 12.5 6 21l6-3 6 3-3-8.5" /></svg>
-  );
-}
+const HERO_HEADLINE = ['Infrastructure for', 'accountable campaigns.'];
+
+const HERO_PILLS = [
+  { Icon: Phone, label: 'No smartphone required' },
+  { Icon: ShieldCheck, label: 'Verified by campaign teams' },
+  { Icon: MapPin, label: 'Mapped to every ward' },
+];
+
+const LIVE_TENANTS = [
+  { name: 'Tinubu Delivers', desc: 'Presidential achievement scorecard, by sector and state', slug: 'tinubu-delivers', mono: 'TD' },
+  { name: 'The ARK Scorecard', desc: 'Lagos State House of Assembly, Ikeja Constituency II', slug: null, mono: 'ARK' },
+  { name: 'The Wadada Way', desc: 'Nasarawa State governorship, ward-level hostility map', slug: null, mono: 'WW' },
+];
 
 function SignalGrid() {
   const dots = [
@@ -57,8 +65,130 @@ function SignalGrid() {
   );
 }
 
+function CountUp({ value }) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: '-40px' });
+  const shouldReduceMotion = useReducedMotion();
+  const [display, setDisplay] = useState(shouldReduceMotion ? value.toLocaleString('en-US') : '0');
+
+  useEffect(() => {
+    if (!isInView || shouldReduceMotion) return;
+    const controls = animate(0, value, {
+      duration: 1.4,
+      ease: [0.16, 1, 0.3, 1],
+      onUpdate: (v) => setDisplay(Math.round(v).toLocaleString('en-US')),
+    });
+    return () => controls.stop();
+  }, [isInView, shouldReduceMotion, value]);
+
+  return <span ref={ref}>{display}</span>;
+}
+
+const fadeUpItem = {
+  hidden: { opacity: 0, y: 18 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } },
+};
+const staggerContainer = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.09, delayChildren: 0.05 } },
+};
+const nodePop = {
+  hidden: { scale: 0.4, opacity: 0 },
+  show: { scale: 1, opacity: 1, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } },
+};
+const lineDraw = {
+  hidden: { scaleX: 0 },
+  show: { scaleX: 1, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.15 } },
+};
+
+function Reveal({ children, className, delay = 0, x, y = 24 }) {
+  const shouldReduceMotion = useReducedMotion();
+  return (
+    <motion.div
+      className={className}
+      initial={shouldReduceMotion ? false : { opacity: 0, y, x }}
+      whileInView={{ opacity: 1, y: 0, x: 0 }}
+      viewport={{ once: true, amount: 0.25 }}
+      transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1], delay }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function RevealGroup({ children, className }) {
+  const shouldReduceMotion = useReducedMotion();
+  return (
+    <motion.div
+      className={className}
+      variants={staggerContainer}
+      initial={shouldReduceMotion ? false : 'hidden'}
+      whileInView="show"
+      viewport={{ once: true, amount: 0.2 }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+const cardHover = { y: -6, transition: { duration: 0.25, ease: [0.16, 1, 0.3, 1] } };
+
+function DashboardMock() {
+  return (
+    <div className="ph-dash-mock" aria-hidden="true">
+      <div className="ph-dash-topbar">
+        <div className="ph-dash-dot" /><div className="ph-dash-dot" /><div className="ph-dash-dot" />
+        <span className="ph-dash-url">politech.com.ng/admin</span>
+      </div>
+      <div className="ph-dash-body">
+        <div className="ph-dash-stats">
+          <div className="ph-dash-stat"><span className="ph-dash-num">312</span><span className="ph-dash-lbl">Locations registered</span></div>
+          <div className="ph-dash-stat"><span className="ph-dash-num ok">278</span><span className="ph-dash-lbl">Verified this week</span></div>
+          <div className="ph-dash-stat"><span className="ph-dash-num warn">34</span><span className="ph-dash-lbl">Zero-scan zones</span></div>
+        </div>
+        <div className="ph-dash-map">
+          {[...Array(24)].map((_, i) => (
+            <span key={i} className={`ph-dash-pin ${i % 7 === 0 ? 'warn' : 'ok'}`} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FooterSignup() {
+  const [email, setEmail] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const subject = encodeURIComponent('Notify me about new PoliTech campaigns');
+    const body = encodeURIComponent(`Please add ${email} to the update list.`);
+    window.location.href = `mailto:hello@politech.com.ng?subject=${subject}&body=${body}`;
+  };
+
+  return (
+    <form className="ph-footer-signup" onSubmit={handleSubmit}>
+      <p className="ph-footer-heading">Stay in the loop</p>
+      <p className="ph-footer-signup-copy">Get updates when we onboard a new campaign.</p>
+      <div className="ph-footer-signup-row">
+        <input
+          type="email"
+          required
+          placeholder="you@email.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="ph-footer-input"
+          aria-label="Email address"
+        />
+        <button type="submit" className="ph-footer-signup-btn">Notify me</button>
+      </div>
+    </form>
+  );
+}
+
 export default function PlatformHome() {
   const [scrolled, setScrolled] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
     window.addEventListener('scroll', onScroll);
@@ -70,105 +200,217 @@ export default function PlatformHome() {
       <header className={`ph-nav ${scrolled ? 'scrolled' : ''}`}>
         <div className="ph-nav-inner">
           <img src={logo} alt="PoliTech" className="ph-nav-logo" />
+          <nav className="ph-nav-links">
+            {NAV_LINKS.map((l) => <a key={l.href} href={l.href}>{l.label}</a>)}
+          </nav>
           <a href="#request" className="ph-nav-cta">Request access</a>
         </div>
       </header>
 
       <section className="ph-hero">
         <div className="ph-hero-inner">
-          <div className="ph-hero-text">
-            <p className="ph-eyebrow">Capitaro PoliTech</p>
-            <h1 className="ph-h1">Infrastructure for<br /><span>accountable campaigns.</span></h1>
-            <p className="ph-hero-sub">
-              Every candidate gets a verified record of what they've done and what they promise \u2014
+          <motion.div
+            className="ph-hero-text"
+            variants={staggerContainer}
+            initial={shouldReduceMotion ? false : 'hidden'}
+            animate="show"
+          >
+            <motion.p className="ph-eyebrow" variants={fadeUpItem}>Capitaro PoliTech</motion.p>
+            <h1 className="ph-h1">
+              {HERO_HEADLINE.map((line, i) => (
+                <span className="ph-h1-line-mask" key={line}>
+                  <motion.span
+                    className="ph-h1-line"
+                    initial={shouldReduceMotion ? false : { y: '110%' }}
+                    animate={{ y: 0 }}
+                    transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1], delay: 0.15 + i * 0.13 }}
+                  >
+                    {i === 1 ? <span className="ph-h1-accent">{line}</span> : line}
+                  </motion.span>
+                </span>
+              ))}
+            </h1>
+            <motion.p className="ph-hero-sub" variants={fadeUpItem}>
+              Every candidate gets a verified record of what they have done and what they promise,
               reachable by QR code, USSD, WhatsApp, and merchandise. Ward by ward, LGA by LGA.
-            </p>
-            <div className="ph-hero-actions">
+            </motion.p>
+            <motion.div className="ph-hero-actions" variants={fadeUpItem}>
               <a href="#request" className="ph-btn-primary">Request access</a>
               <a href="/tinubu-delivers" className="ph-btn-ghost">See it live <span aria-hidden="true">&rarr;</span></a>
+            </motion.div>
+            <motion.div className="ph-hero-pills" variants={fadeUpItem}>
+              {HERO_PILLS.map((p) => (
+                <span className="ph-hero-pill" key={p.label}>
+                  <p.Icon size={15} strokeWidth={1.8} />
+                  {p.label}
+                </span>
+              ))}
+            </motion.div>
+            <motion.div className="ph-hero-stats" variants={fadeUpItem}>
+              <div><span className="ph-stat-num"><CountUp value={37} /></span><span className="ph-stat-lbl">states covered</span></div>
+              <div><span className="ph-stat-num"><CountUp value={774} /></span><span className="ph-stat-lbl">LGAs mapped</span></div>
+              <div><span className="ph-stat-num"><CountUp value={8809} /></span><span className="ph-stat-lbl">wards tracked</span></div>
+            </motion.div>
+          </motion.div>
+          <motion.div
+            className="ph-hero-visual"
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 14, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.25 }}
+          >
+            <div className="ph-hero-visual-panel">
+              <SignalGrid />
             </div>
-            <div className="ph-hero-stats">
-              <div><span className="ph-stat-num">37</span><span className="ph-stat-lbl">states covered</span></div>
-              <div><span className="ph-stat-num">774</span><span className="ph-stat-lbl">LGAs mapped</span></div>
-              <div><span className="ph-stat-num">8,809</span><span className="ph-stat-lbl">wards tracked</span></div>
-            </div>
-          </div>
-          <div className="ph-hero-visual">
-            <SignalGrid />
-            <p className="ph-visual-caption">Live scan coverage \u2014 verified in green, unreached in red.</p>
-          </div>
+            <p className="ph-visual-caption">Live scan coverage. Verified in green, unreached in red.</p>
+          </motion.div>
         </div>
       </section>
 
-      <section className="ph-section">
-        <p className="ph-section-eyebrow">How it works</p>
-        <h2 className="ph-h2">From a sticker to a verified record.</h2>
-        <div className="ph-steps">
-          {STEPS.map((s) => (
-            <div className="ph-step" key={s.n}>
-              <span className="ph-step-n">{s.n}</span>
-              <h3 className="ph-step-title">{s.title}</h3>
-              <p className="ph-step-body">{s.body}</p>
-            </div>
+      <section className="ph-trust" id="trust">
+        <Reveal y={12}><p className="ph-trust-label">Live on PoliTech infrastructure</p></Reveal>
+        <RevealGroup className="ph-trust-row">
+          {LIVE_TENANTS.map((t) => (
+            t.slug ? (
+              <motion.a key={t.name} href={`/${t.slug}`} className="ph-trust-item" variants={fadeUpItem} whileHover={cardHover}>
+                <span className="ph-trust-mono">{t.mono}</span>
+                <span className="ph-trust-text">
+                  <span className="ph-trust-name">{t.name}</span>
+                  <span className="ph-trust-desc">{t.desc}</span>
+                </span>
+              </motion.a>
+            ) : (
+              <motion.div key={t.name} className="ph-trust-item" variants={fadeUpItem} whileHover={cardHover}>
+                <span className="ph-trust-mono">{t.mono}</span>
+                <span className="ph-trust-text">
+                  <span className="ph-trust-name">{t.name}</span>
+                  <span className="ph-trust-desc">{t.desc}</span>
+                </span>
+              </motion.div>
+            )
           ))}
-        </div>
+        </RevealGroup>
       </section>
 
-      <section className="ph-section ph-section-dark">
-        <p className="ph-section-eyebrow">Built for every mandate</p>
-        <h2 className="ph-h2">Not just presidents and governors.</h2>
-        <p className="ph-section-sub">One platform serves political offices and organizational ones \u2014 each with its own reporting structure.</p>
+      <section className="ph-section" id="reach">
+        <Reveal>
+          <p className="ph-section-eyebrow">What PoliTech does</p>
+          <h2 className="ph-h2">Reach, verify, and prove — in one platform.</h2>
+        </Reveal>
+        <RevealGroup className="ph-features">
+          {FEATURES.map((f) => (
+            <motion.div className="ph-feature" key={f.title} variants={fadeUpItem} whileHover={cardHover}>
+              <div className="ph-feature-icon"><f.Icon size={22} strokeWidth={1.6} /></div>
+              <h3 className="ph-feature-title">{f.title}</h3>
+              <p className="ph-feature-body">{f.body}</p>
+            </motion.div>
+          ))}
+        </RevealGroup>
+      </section>
+
+      <section className="ph-section ph-section-white">
+        <Reveal>
+          <p className="ph-section-eyebrow">Built for every mandate</p>
+          <h2 className="ph-h2">Not just presidents and governors.</h2>
+          <p className="ph-section-sub">One platform serves political offices and organizational ones, each with its own reporting structure.</p>
+        </Reveal>
         <div className="ph-office-cols">
           <div>
             <p className="ph-office-col-label">Geographic</p>
-            <div className="ph-chips">
-              {OFFICES_GEO.map((o) => <span className="ph-chip" key={o}>{o}</span>)}
-            </div>
+            <RevealGroup className="ph-chips">
+              {OFFICES_GEO.map((o) => (
+                <motion.span className="ph-chip" key={o} variants={fadeUpItem} whileHover={{ y: -3, scale: 1.05 }}>{o}</motion.span>
+              ))}
+            </RevealGroup>
           </div>
           <div>
             <p className="ph-office-col-label">Organizational</p>
-            <div className="ph-chips">
-              {OFFICES_ORG.map((o) => <span className="ph-chip" key={o}>{o}</span>)}
-            </div>
+            <RevealGroup className="ph-chips">
+              {OFFICES_ORG.map((o) => (
+                <motion.span className="ph-chip" key={o} variants={fadeUpItem} whileHover={{ y: -3, scale: 1.05 }}>{o}</motion.span>
+              ))}
+            </RevealGroup>
           </div>
         </div>
       </section>
 
-      <section className="ph-section">
-        <p className="ph-section-eyebrow">Reach beyond the smartphone</p>
-        <h2 className="ph-h2">Every channel, one verified source.</h2>
-        <div className="ph-channels">
-          {CHANNELS.map((c) => (
-            <div className="ph-channel" key={c.title}>
-              <div className="ph-channel-icon"><Icon name={c.icon} /></div>
-              <h3 className="ph-channel-title">{c.title}</h3>
-              <p className="ph-channel-body">{c.body}</p>
-            </div>
+      <section className="ph-section" id="how">
+        <Reveal>
+          <p className="ph-section-eyebrow">How it works</p>
+          <h2 className="ph-h2">From a sticker to a verified record.</h2>
+        </Reveal>
+        <RevealGroup className="ph-steps">
+          {STEPS.map((s, i) => (
+            <motion.div className="ph-step" key={s.n} variants={fadeUpItem}>
+              <div className="ph-step-node-row">
+                <motion.span className="ph-step-node" variants={nodePop}>{s.n}</motion.span>
+                {i < STEPS.length - 1 && <motion.span className="ph-step-line" variants={lineDraw} style={{ transformOrigin: 'left' }} />}
+              </div>
+              <h3 className="ph-step-title">{s.title}</h3>
+              <p className="ph-step-body">{s.body}</p>
+            </motion.div>
           ))}
+        </RevealGroup>
+      </section>
+
+      <section className="ph-section ph-section-white">
+        <div className="ph-split">
+          <Reveal className="ph-split-text" x={-20} y={0}>
+            <p className="ph-section-eyebrow">See it in action</p>
+            <h2 className="ph-h2">Know exactly where a campaign has reached.</h2>
+            <p className="ph-section-sub">
+              The admin dashboard tracks every registered location in real time, flagging wards with
+              zero scans after seven days so field teams know exactly where to focus next.
+            </p>
+          </Reveal>
+          <Reveal x={20} y={0} delay={0.1}>
+            <DashboardMock />
+          </Reveal>
         </div>
       </section>
 
-      <section className="ph-section ph-neutral">
-        <div className="ph-neutral-inner">
+      <section className="ph-neutral">
+        <Reveal className="ph-neutral-inner">
+          <span className="ph-neutral-mark" aria-hidden="true">&ldquo;</span>
           <p className="ph-section-eyebrow">Where we stand</p>
-          <h2 className="ph-h2">We don't run campaigns. We run the infrastructure.</h2>
+          <h2 className="ph-h2">We do not run campaigns. We run the infrastructure.</h2>
           <p className="ph-neutral-body">
-            Every fact on PoliTech is provided or approved by the candidate's own team. We don't editorialize,
-            take sides, or decide what counts as an achievement \u2014 we build the rails, and the campaign
+            Every fact on PoliTech is provided or approved by the candidate's own team. We do not editorialize,
+            take sides, or decide what counts as an achievement. We build the rails, and the campaign
             supplies the record.
           </p>
-        </div>
+        </Reveal>
       </section>
 
       <section className="ph-section ph-request" id="request">
-        <h2 className="ph-h2">Bring your campaign to PoliTech.</h2>
-        <p className="ph-section-sub">Tell us about your candidate or organization, and we'll set up your onboarding.</p>
-        <a href="mailto:hello@politech.com.ng" className="ph-btn-primary">Request access</a>
+        <Reveal>
+          <h2 className="ph-h2">Bring your campaign to PoliTech.</h2>
+          <p className="ph-section-sub">Tell us about your candidate or organization, and we will set up your onboarding.</p>
+          <a href="mailto:hello@politech.com.ng" className="ph-btn-primary">Request access</a>
+        </Reveal>
       </section>
 
       <footer className="ph-footer">
-        <img src={logo} alt="PoliTech" className="ph-footer-logo" />
-        <p className="ph-footer-text">A Capitaro product &middot; politech.com.ng</p>
+        <Reveal className="ph-footer-inner" y={12}>
+          <div className="ph-footer-brand">
+            <img src={logo} alt="PoliTech" className="ph-footer-logo" />
+            <p className="ph-footer-tag">Infrastructure for accountable campaigns.</p>
+          </div>
+          <div className="ph-footer-col">
+            <p className="ph-footer-heading">Product</p>
+            <a href="#how">How it works</a>
+            <a href="#reach">Reach</a>
+            <a href="#trust">Live now</a>
+          </div>
+          <div className="ph-footer-col">
+            <p className="ph-footer-heading">Company</p>
+            <a href="mailto:hello@politech.com.ng">Contact</a>
+            <a href="#request">Request access</a>
+          </div>
+          <FooterSignup />
+        </Reveal>
+        <div className="ph-footer-bottom">
+          <p className="ph-footer-text">A Capitaro product &middot; politech.com.ng</p>
+        </div>
       </footer>
     </div>
   );
